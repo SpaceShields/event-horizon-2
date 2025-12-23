@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     .from('events_with_stats')
     .select('*, event_categories(name, slug)')
     .eq('owner_id', user.id)
-    .order('start_datetime', { ascending: false })
+    .order('start_datetime', { ascending: true })
 
   // Get user's registrations
   const { data: myRegistrations } = await supabase
