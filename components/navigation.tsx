@@ -9,28 +9,36 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export function Navigation() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const supabase = createClient()
+  const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-    }
-    getUser()
+    // Get initial session on mount
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+    getInitialSession();
 
-    return () => subscription.unsubscribe()
-  }, [supabase.auth])
+    // Listen for auth state changes (sign in, sign out, token refresh)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    await supabase.auth.signOut();
+    router.push('/');
   }
 
   return (
