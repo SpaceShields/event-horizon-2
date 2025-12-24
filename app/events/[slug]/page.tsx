@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Navigation } from '@/components/navigation'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, MapPin, Users, DollarSign, Video, Building, Clock, Globe } from 'lucide-react'
+import { Calendar, MapPin, Users, DollarSign, Video, Building, Clock, Globe, User } from 'lucide-react'
 import { formatDateTime, formatPrice } from '@/lib/utils'
 import { RegistrationButton } from '@/components/registration-button'
 import { notFound } from 'next/navigation'
@@ -29,15 +29,20 @@ export default async function EventDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   let userRegistration = null
 
-  if (user) {
-    const { data } = await supabase
-      .from('event_registrations')
-      .select('*')
-      .eq('event_id', event.id)
-      .eq('user_id', user.id)
-      .single()
-    userRegistration = data
-  }
+  const { data: registeredAttendees } = await supabase
+    .from('event_registrations')
+    .select('*, profiles(full_name, avatar_url)')
+    .eq('event_id', event.id).limit(10)
+    // .eq('user_id', user.id)
+    // .single()
+
+  registeredAttendees?.forEach((registeredProfile) => {
+    if(registeredProfile.user_id == user?.id) {
+      userRegistration = registeredProfile
+    }
+  })
+
+  console.log(registeredAttendees)
 
   const LocationIcon = event.location_type === 'virtual' ? Video : event.location_type === 'physical' ? Building : MapPin
   const isOwner = user?.id === event.owner_id
@@ -85,6 +90,46 @@ export default async function EventDetailPage({
               <div>
                 <h2 className="text-2xl font-bold mb-4">Registration Instructions</h2>
                 <p className="text-gray-300 whitespace-pre-wrap">{event.registration_instructions}</p>
+              </div>
+            )}
+
+            {/* Registered Attendees - Only visible to event owner */}
+            {isOwner && (
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Registered Attendees</h2>
+                {registeredAttendees && registeredAttendees.length > 0 ? (
+                  <div className="space-y-3">
+                    {registeredAttendees.map((attendee) => (
+                      <div key={attendee.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                            <User className="w-6 h-6 text-blue-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">{attendee.profiles?.full_name || 'Anonymous'}</p>
+                            <p className="text-sm text-gray-400">
+                              Registered {formatDateTime(attendee.created_at)}
+                            </p>
+                            {attendee.guest_count && attendee.guest_count > 1 && (
+                              <p className="text-sm text-gray-400">
+                                +{attendee.guest_count - 1} guest{attendee.guest_count > 2 ? 's' : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {attendee.special_notes && (
+                          <div className="mt-3 pt-3 border-t border-white/10">
+                            <p className="text-sm text-gray-400">
+                              <span className="font-medium">Note:</span> {attendee.special_notes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400">No registered attendees yet</p>
+                )}
               </div>
             )}
           </div>

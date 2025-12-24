@@ -29,6 +29,7 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: fullName,
+          avatar_url: 'https://images.stockcake.com/public/9/e/1/9e176752-f4ef-4436-8529-6bec9af65b1e_medium/astronaut-floating-freely-stockcake.jpg'
         },
       },
     })
