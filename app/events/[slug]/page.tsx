@@ -60,7 +60,7 @@ export default async function EventDetailPage({
             {event.status === 'completed' && <Badge className="bg-gray-500">Completed</Badge>}
             {event.status === 'cancelled' && <Badge variant="destructive">Cancelled</Badge>}
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">{event.title}</h1>
+          <h1 className="text-2xl md:text-5xl font-bold mb-4">{event.title}</h1>
           {event.organization_name && (
             <p className="text-xl text-gray-400">Organized by {event.organization_name}</p>
           )}
