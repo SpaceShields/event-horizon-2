@@ -59,9 +59,10 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Documentation
 
-- **[SETUP.md](./SETUP.md)** - Comprehensive setup guide with troubleshooting
-- **[mvp-requirements.md](./mvp-requirements.md)** - Detailed product requirements and specifications
-- **[CLAUDE.md](./CLAUDE.md)** - Project architecture and development guidelines
+- **[SETUP.md](./docs/SETUP.md)** - Comprehensive setup guide with troubleshooting
+- **[mvp-requirements.md](./docs/mvp-requirements.md)** - Detailed product requirements and specifications
+- **[DEPLOYMENT.md](./docs/DEPLOYMENT.md)** - Project deployment instructions
+- **[README.docker.md](./docs/README.docker.md)** - Docker containerization README
 
 ## Project Structure
 
@@ -117,8 +118,6 @@ lib/
 - **events** - Event data with location, pricing, capacity
 - **event_registrations** - User RSVPs and attendance tracking
 - **events_with_stats** - Database view with registration counts
-
-See [SETUP.md](./SETUP.md) for detailed schema documentation.
 
 ## Development Commands
 
