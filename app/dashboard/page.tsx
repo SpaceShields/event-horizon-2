@@ -109,7 +109,7 @@ export default async function DashboardPage() {
                               <Edit className="w-4 h-4" />
                             </Button>
                           </Link>
-                          <DeleteEventButton eventId={event.id} eventTitle={event.title} />
+                          <DeleteEventButton eventId={event.id} eventTitle={event.title} imageUrl={event.image_url} />
                         </div>
                       </div>
                     </CardHeader>
