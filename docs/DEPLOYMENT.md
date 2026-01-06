@@ -158,6 +158,141 @@ docker run -p 3000:3000 -e NEXT_PUBLIC_SUPABASE_URL=your-url event-horizon
 
 ---
 
+## Google OAuth Configuration
+
+Complete guide for setting up Google OAuth authentication.
+
+### Step 1: Create Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Click **Select a project** > **New Project**
+3. Enter project name (e.g., "Event Horizon Production")
+4. Click **Create**
+
+### Step 2: Configure OAuth Consent Screen
+
+1. Navigate to **APIs & Services** > **OAuth consent screen**
+2. Select **External** user type (unless using Google Workspace)
+3. Click **Create**
+4. Fill in the required fields:
+   - **App name**: Event Horizon
+   - **User support email**: your-email@example.com
+   - **Developer contact information**: your-email@example.com
+5. Click **Save and Continue**
+6. **Scopes**: Add the following scopes:
+   - `openid`
+   - `email`
+   - `profile`
+7. Click **Save and Continue**
+8. **Test users** (optional for testing): Add test email addresses
+9. Click **Save and Continue**
+
+### Step 3: Create OAuth Credentials
+
+1. Navigate to **APIs & Services** > **Credentials**
+2. Click **Create Credentials** > **OAuth client ID**
+3. Select **Web application** as application type
+4. Enter a name (e.g., "Event Horizon Web Client")
+
+5. **Authorized JavaScript origins** (add all that apply):
+   ```
+   # Development
+   http://localhost:3000
+
+   # Production (replace with your domains)
+   https://your-domain.vercel.app
+   https://yourdomain.com
+   https://www.yourdomain.com
+   ```
+
+6. **Authorized redirect URIs** (add all that apply):
+   ```
+   # Development
+   http://localhost:3000/auth/callback
+
+   # Production Supabase callback (REQUIRED)
+   https://your-project-ref.supabase.co/auth/v1/callback
+
+   # Production app callbacks (replace with your domains)
+   https://your-domain.vercel.app/auth/callback
+   https://yourdomain.com/auth/callback
+   ```
+
+7. Click **Create**
+8. Copy the **Client ID** and **Client Secret** - you'll need these for Supabase
+
+### Step 4: Configure Supabase Google Provider
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Navigate to **Authentication** > **Providers**
+4. Find **Google** and click to expand
+5. Toggle **Enable Sign in with Google** to ON
+6. Enter your credentials:
+   - **Client ID**: (from Google Cloud Console)
+   - **Client Secret**: (from Google Cloud Console)
+7. Click **Save**
+
+### Step 5: Configure Supabase Redirect URLs
+
+1. In Supabase Dashboard, go to **Authentication** > **URL Configuration**
+2. Set the following:
+
+   **Site URL** (your production domain):
+   ```
+   https://your-domain.vercel.app
+   ```
+
+   **Redirect URLs** (add all environments):
+   ```
+   http://localhost:3000/auth/callback
+   https://your-domain.vercel.app/auth/callback
+   https://yourdomain.com/auth/callback
+   ```
+
+3. Click **Save**
+
+### Step 6: Verify Environment Variables
+
+Ensure these are set in Vercel (or your deployment platform):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
+```
+
+### Google OAuth Redirect URI Reference
+
+| Environment | Supabase Callback URI |
+|-------------|----------------------|
+| Development | `https://your-project-ref.supabase.co/auth/v1/callback` |
+| Production | `https://your-project-ref.supabase.co/auth/v1/callback` |
+
+**Important**: The Supabase callback URL is always `https://your-project-ref.supabase.co/auth/v1/callback`. This is where Google redirects after authentication, and Supabase then redirects to your app's `/auth/callback` route.
+
+### Troubleshooting Google OAuth
+
+#### Error: "redirect_uri_mismatch"
+- Verify the redirect URI in Google Cloud Console exactly matches the Supabase callback URL
+- Check for trailing slashes - they must match exactly
+- Ensure you're using `https://` not `http://` for production
+
+#### Error: "Access blocked: This app's request is invalid"
+- OAuth consent screen may not be configured
+- App may still be in "Testing" mode - publish the app for production use
+
+#### Error: "Invalid credentials"
+- Double-check Client ID and Secret are correctly copied
+- Regenerate credentials if needed
+
+#### User sees blank page after OAuth
+- Check Supabase URL Configuration - Site URL must be set
+- Verify `/auth/callback` route exists and handles the OAuth response
+
+---
+
 ## Post-Deployment Steps
 
 ### 1. Verify Deployment

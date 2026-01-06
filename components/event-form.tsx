@@ -9,9 +9,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 
+import type { Database } from '@/lib/types/database'
+
+type EventRow = Database['public']['Tables']['events']['Row']
+
 interface EventFormProps {
   categories: Array<{ id: number; name: string; slug: string }>
-  event?: any
+  event?: EventRow | null
 }
 
 export function EventForm({ categories, event }: EventFormProps) {
@@ -174,7 +178,7 @@ export function EventForm({ categories, event }: EventFormProps) {
         <Select
           id="locationType"
           value={locationType}
-          onChange={(e) => setLocationType(e.target.value as any)}
+          onChange={(e) => setLocationType(e.target.value as 'physical' | 'virtual' | 'hybrid')}
           required
           className="bg-white/5 border-white/10"
         >
@@ -184,7 +188,7 @@ export function EventForm({ categories, event }: EventFormProps) {
         </Select>
       </div>
 
-      {/* Address */}
+      {/* Address - required for physical and hybrid events */}
       {locationType !== 'virtual' && (
         <div className="space-y-2">
           <Label htmlFor="address">Address *</Label>
@@ -192,7 +196,7 @@ export function EventForm({ categories, event }: EventFormProps) {
             id="address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            required={locationType !== 'virtual'}
+            required
             placeholder="123 Space Center Dr, Houston, TX"
             className="bg-white/5 border-white/10"
           />
@@ -208,7 +212,7 @@ export function EventForm({ categories, event }: EventFormProps) {
             type="url"
             value={meetingUrl}
             onChange={(e) => setMeetingUrl(e.target.value)}
-            required={locationType !== 'physical'}
+            required
             placeholder="https://zoom.us/j/..."
             className="bg-white/5 border-white/10"
           />

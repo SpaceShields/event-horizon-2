@@ -1,11 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { validateEnv } from '@/lib/env'
+
+// Validate client-side environment variables on module load
+validateEnv({ skipServerVars: true })
 
 export function createClient() {
-
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
   return createBrowserClient(
-    url, anonKey
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }

@@ -5,6 +5,7 @@ import { Calendar, MapPin, Users, DollarSign, Video, Building, Clock, Globe, Use
 import { formatDateTime, formatPrice } from '@/lib/utils'
 import { RegistrationButton } from '@/components/registration-button'
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
 
 export default async function EventDetailPage({
   params,
@@ -42,8 +43,6 @@ export default async function EventDetailPage({
     }
   })
 
-  console.log(registeredAttendees)
-
   const LocationIcon = event.location_type === 'virtual' ? Video : event.location_type === 'physical' ? Building : MapPin
   const isOwner = user?.id === event.owner_id
 
@@ -69,11 +68,14 @@ export default async function EventDetailPage({
 
         {/* Event Image */}
         {event.image_url && (
-          <div className="aspect-video w-full overflow-hidden rounded-xl mb-8">
-            <img
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl mb-8">
+            <Image
               src={event.image_url}
               alt={event.title}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1024px"
+              priority
             />
           </div>
         )}
@@ -244,10 +246,12 @@ export default async function EventDetailPage({
               <h3 className="font-semibold text-lg mb-4">Organized By</h3>
               <div className="flex items-center gap-3">
                 {event.profiles?.avatar_url ? (
-                  <img
+                  <Image
                     src={event.profiles.avatar_url}
-                    alt={event.profiles.full_name}
-                    className="w-12 h-12 rounded-full"
+                    alt={event.profiles.full_name || 'Organizer avatar'}
+                    width={48}
+                    height={48}
+                    className="rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">

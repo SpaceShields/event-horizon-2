@@ -3,9 +3,10 @@ import { Navigation } from '@/components/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Users, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Users, Edit } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { DeleteEventButton } from '@/components/delete-event-button'
 
@@ -48,10 +49,12 @@ export default async function DashboardPage() {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
             {profile?.avatar_url ? (
-              <img
+              <Image
                 src={profile.avatar_url}
-                alt={profile.full_name || 'User'}
-                className="w-20 h-20 rounded-full"
+                alt={profile.full_name || 'User avatar'}
+                width={80}
+                height={80}
+                className="rounded-full object-cover"
               />
             ) : (
               <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center text-3xl">
@@ -130,7 +133,7 @@ export default async function DashboardPage() {
               ) : (
                 <Card className="bg-white/5 backdrop-blur-sm border-white/10">
                   <CardContent className="py-12 text-center">
-                    <p className="text-gray-400">You haven't created any events yet.</p>
+                    <p className="text-gray-400">You haven&apos;t created any events yet.</p>
                     <Link href="/events/new">
                       <Button className="mt-4">Create Your First Event</Button>
                     </Link>
@@ -187,7 +190,7 @@ export default async function DashboardPage() {
               ) : (
                 <Card className="bg-white/5 backdrop-blur-sm border-white/10">
                   <CardContent className="py-12 text-center">
-                    <p className="text-gray-400">You haven't registered for any events yet.</p>
+                    <p className="text-gray-400">You haven&apos;t registered for any events yet.</p>
                     <Link href="/events">
                       <Button className="mt-4">Browse Events</Button>
                     </Link>

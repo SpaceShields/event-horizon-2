@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const redirectTo = requestUrl.searchParams.get('redirectTo')
   const origin = requestUrl.origin
 
   if (code) {
@@ -12,10 +13,11 @@ export async function GET(request: Request) {
 
     if (error) {
       // Redirect to login page on error
-      return NextResponse.redirect(`${origin}/auth/login?error=${error.message}`)
+      return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(error.message)}`)
     }
   }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(`${origin}/`)
+  // Redirect to the intended destination, or /events as default
+  const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/events'
+  return NextResponse.redirect(`${origin}${destination}`)
 }

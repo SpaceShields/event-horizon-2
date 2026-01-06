@@ -1,11 +1,18 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, MapPin, Users, DollarSign, Video, Building } from 'lucide-react'
 import { formatDateTime, formatPrice } from '@/lib/utils'
 
+import type { Database } from '@/lib/types/database'
+
+type EventWithStats = Database['public']['Views']['events_with_stats']['Row'] & {
+  event_categories?: { name: string; slug: string } | null
+}
+
 interface EventCardProps {
-  event: any
+  event: EventWithStats
 }
 
 export function EventCard({ event }: EventCardProps) {
@@ -15,11 +22,13 @@ export function EventCard({ event }: EventCardProps) {
     <Link href={`/events/${event.slug}`}>
       <Card className="h-full hover:border-blue-500/50 transition-colors bg-white/5 backdrop-blur-sm border-white/10">
         {event.image_url && (
-          <div className="aspect-video w-full overflow-hidden rounded-t-xl">
-            <img
+          <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
+            <Image
               src={event.image_url}
-              alt={event.title}
-              className="w-full h-full object-cover"
+              alt={event.title ?? 'Event image'}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           </div>
         )}

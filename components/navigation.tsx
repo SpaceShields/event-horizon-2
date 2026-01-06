@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
