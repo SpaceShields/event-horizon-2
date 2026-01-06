@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
+        // Stockcake for stock/placeholder profile images
+        protocol: 'https',
+        hostname: 'images.stockcake.com',
+        pathname: '/**',
+      },
+      {
         // Supabase Storage for user-uploaded images
         protocol: 'https',
         hostname: '*.supabase.co',

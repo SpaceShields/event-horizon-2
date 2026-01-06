@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
+import { ImageSelector } from '@/components/image-selector'
 import { createClient } from '@/lib/supabase/client'
 
 import type { Database } from '@/lib/types/database'
@@ -45,12 +46,32 @@ export function EventForm({ categories, event }: EventFormProps) {
   const [registrationInstructions, setRegistrationInstructions] = useState(
     event?.registration_instructions || ''
   )
-  const [imageUrl, setImageUrl] = useState(event?.image_url || '')
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(
+    event?.image_url || null
+  )
+  // Track image path for potential cleanup (custom uploads)
+  const [, setSelectedImagePath] = useState<string | null>(null)
+
+  // Callback for image selection changes
+  const handleImageSelected = useCallback(
+    (url: string | null, path: string | null) => {
+      setSelectedImageUrl(url)
+      setSelectedImagePath(path)
+    },
+    []
+  )
 
   const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'published') => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    // Validate image selection (required field)
+    if (!selectedImageUrl) {
+      setError('Please select a stock image or upload a custom image for your event.')
+      setLoading(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -74,7 +95,7 @@ export function EventForm({ categories, event }: EventFormProps) {
       capacity: capacity ? parseInt(capacity) : null,
       ticket_price: ticketPrice ? parseFloat(ticketPrice) : null,
       registration_instructions: registrationInstructions || null,
-      image_url: imageUrl || null,
+      image_url: selectedImageUrl,
       status,
     }
 
@@ -302,18 +323,11 @@ export function EventForm({ categories, event }: EventFormProps) {
         />
       </div>
 
-      {/* Image URL */}
-      <div className="space-y-2">
-        <Label htmlFor="imageUrl">Event Image URL (Optional)</Label>
-        <Input
-          id="imageUrl"
-          type="url"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          className="bg-white/5 border-white/10"
-        />
-      </div>
+      {/* Event Image */}
+      <ImageSelector
+        initialImageUrl={event?.image_url}
+        onImageSelected={handleImageSelected}
+      />
 
       {/* Submit Buttons */}
       <div className="flex gap-4 pt-4">

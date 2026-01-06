@@ -5,29 +5,68 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  isCustomImageUrl,
+  extractStoragePath,
+  deleteCustomImage,
+} from '@/lib/storage-helpers'
 
-export function DeleteEventButton({ eventId, eventTitle }: { eventId: string; eventTitle: string }) {
+interface DeleteEventButtonProps {
+  eventId: string
+  eventTitle: string
+  /** Optional image URL - if provided and is a custom upload, will be deleted */
+  imageUrl?: string | null
+}
+
+export function DeleteEventButton({
+  eventId,
+  eventTitle,
+  imageUrl,
+}: DeleteEventButtonProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${eventTitle}"? This action cannot be undone.`
+      )
+    ) {
       return
     }
 
     setLoading(true)
 
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', eventId)
+    try {
+      // If the event has a custom uploaded image, delete it from storage first
+      if (imageUrl && isCustomImageUrl(imageUrl)) {
+        const storagePath = extractStoragePath(imageUrl)
+        if (storagePath) {
+          try {
+            await deleteCustomImage(supabase, storagePath)
+          } catch (err) {
+            // Log but don't fail the event deletion if image cleanup fails
+            console.error('Failed to delete custom image:', err)
+          }
+        }
+      }
 
-    if (error) {
-      alert(`Error deleting event: ${error.message}`)
-      setLoading(false)
-    } else {
+      // Delete the event
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId)
+
+      if (error) {
+        throw error
+      }
+
       router.refresh()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      alert(`Error deleting event: ${message}`)
+      setLoading(false)
     }
   }
 
