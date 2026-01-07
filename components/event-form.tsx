@@ -137,6 +137,59 @@ export function EventForm({ categories, event }: EventFormProps) {
         </div>
       )}
 
+      {/* Submit Buttons */}
+      <div className="flex gap-4">
+        <Button
+          type="button"
+          onClick={(e) => handleSubmit(e, 'draft')}
+          variant="outline"
+          disabled={loading}
+          className="flex-1"
+        >
+          {loading ? 'Saving...' : 'Save as Draft'}
+        </Button>
+        <Button
+          type="button"
+          onClick={(e) => handleSubmit(e, 'published')}
+          disabled={loading}
+          className="flex-1"
+        >
+          {loading ? 'Publishing...' : event ? 'Update Event' : 'Publish Event'}
+        </Button>
+      </div>
+
+      {/* Time Slots Section */}
+      <div className="pt-6 border-t border-white/10">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-1">Time Slots</h3>
+              {event?.id && event?.slug ? (
+                <>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Manage time slots to allow attendees to register for specific sessions within your event.
+                  </p>
+                  <Link href={`/events/${event.slug}/slots`}>
+                    <Button type="button" variant="outline" size="sm">
+                      <Clock className="w-4 h-4 mr-2" />
+                      Manage Time Slots
+                      <ExternalLink className="w-3 h-3 ml-2" />
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <p className="text-gray-400 text-sm">
+                  Save your event first to add time slots. Time slots allow attendees to register for specific sessions within your event.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Title */}
       <div className="space-y-2">
         <Label htmlFor="title">Event Title *</Label>
@@ -330,59 +383,6 @@ export function EventForm({ categories, event }: EventFormProps) {
         initialImageUrl={event?.image_url}
         onImageSelected={handleImageSelected}
       />
-
-      {/* Time Slots Section */}
-      <div className="pt-6 border-t border-white/10">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-blue-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold mb-1">Time Slots</h3>
-              {event?.id && event?.slug ? (
-                <>
-                  <p className="text-gray-400 text-sm mb-4">
-                    Manage time slots to allow attendees to register for specific sessions within your event.
-                  </p>
-                  <Link href={`/events/${event.slug}/slots`}>
-                    <Button type="button" variant="outline" size="sm">
-                      <Clock className="w-4 h-4 mr-2" />
-                      Manage Time Slots
-                      <ExternalLink className="w-3 h-3 ml-2" />
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <p className="text-gray-400 text-sm">
-                  Save your event first to add time slots. Time slots allow attendees to register for specific sessions within your event.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Submit Buttons */}
-      <div className="flex gap-4 pt-4">
-        <Button
-          type="button"
-          onClick={(e) => handleSubmit(e, 'draft')}
-          variant="outline"
-          disabled={loading}
-          className="flex-1"
-        >
-          {loading ? 'Saving...' : 'Save as Draft'}
-        </Button>
-        <Button
-          type="button"
-          onClick={(e) => handleSubmit(e, 'published')}
-          disabled={loading}
-          className="flex-1"
-        >
-          {loading ? 'Publishing...' : event ? 'Update Event' : 'Publish Event'}
-        </Button>
-      </div>
     </form>
   )
 }
