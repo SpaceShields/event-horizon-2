@@ -1,11 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { Navigation } from '@/components/navigation'
 import { Badge } from '@/components/ui/badge'
-import { Clock, Users, DollarSign, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Clock, Users, DollarSign, User, Edit } from 'lucide-react'
 import { formatDateTime, formatPrice } from '@/lib/utils'
 import { EventRegistrationSection } from '@/components/event-registration-section'
+import { SlotRegistrations, WholeEventRegistrations } from '@/components/slot-registrations'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
+import { checkEventPermissions } from '@/lib/auth-helpers'
+import { getRegistrationsBySlot, type GroupedRegistrations } from '@/lib/registration-helpers'
 
 import type { TimeSlotWithStats } from '@/lib/types/database'
 
@@ -31,7 +36,7 @@ export default async function EventDetailPage({
   // Check if user is registered
   const { data: { user } } = await supabase.auth.getUser()
   let userRegistration = null
-  let existingSlotRegistrations: string[] = []
+  const existingSlotRegistrations: string[] = []
 
   const { data: registeredAttendees } = await supabase
     .from('event_registrations')
@@ -60,7 +65,16 @@ export default async function EventDetailPage({
     timeSlots = slotsData || []
   }
 
-  const isOwner = user?.id === event.owner_id
+  // Check permissions for event management
+  const permissions = await checkEventPermissions(event.id)
+  const isOwner = permissions.isOwner
+  const canManage = permissions.canManage
+
+  // Fetch grouped registrations for admins/owners
+  let registrationsBySlot: GroupedRegistrations | null = null
+  if (canManage && event.has_time_slots) {
+    registrationsBySlot = await getRegistrationsBySlot(event.id)
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -86,6 +100,21 @@ export default async function EventDetailPage({
             <p className="text-lg sm:text-xl text-gray-400">Organized by {event.organization_name}</p>
           )}
         </div>
+
+        {/* Edit Button - Visible to event owner and administrators */}
+        {canManage && (
+          <div className="mb-6">
+            <Link href={`/events/edit/${event.slug}`}>
+              <Button
+                variant="outline"
+                className="border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Event
+              </Button>
+            </Link>
+          </div>
+        )}
 
         {/* Event Image */}
         {event.image_url && (
@@ -195,6 +224,16 @@ export default async function EventDetailPage({
                         </div>
                       </div>
                     </div>
+
+                    {/* Slot Registrations - Visible to owners/admins */}
+                    {canManage && registrationsBySlot && (
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <SlotRegistrations
+                          slotId={slot.id}
+                          registrations={registrationsBySlot.bySlot[slot.id] || []}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -234,8 +273,13 @@ export default async function EventDetailPage({
             </div>
           </div>
 
-          {/* Registered Attendees - Only visible to event owner */}
-          {isOwner && (
+          {/* Legacy Whole Event Registrations - Only for slotted events with legacy registrations */}
+          {canManage && event.has_time_slots && registrationsBySlot && registrationsBySlot.wholeEvent.length > 0 && (
+            <WholeEventRegistrations registrations={registrationsBySlot.wholeEvent} />
+          )}
+
+          {/* Registered Attendees - Only for non-slotted events, visible to owner and administrators */}
+          {canManage && !event.has_time_slots && (
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
               <h2 className="text-xl sm:text-2xl font-bold mb-6">Registered Attendees</h2>
               {registeredAttendees && registeredAttendees.length > 0 ? (
@@ -251,21 +295,7 @@ export default async function EventDetailPage({
                           <p className="text-sm text-gray-400">
                             Registered {formatDateTime(attendee.created_at)}
                           </p>
-                          {attendee.time_slot_id && attendee.event_time_slots && (
-                            <p className="text-sm text-blue-400">
-                              Session: {attendee.event_time_slots.title}
-                            </p>
-                          )}
-                          {!attendee.time_slot_id && event.has_time_slots && (
-                            <p className="text-sm text-gray-500">
-                              Whole Event (Legacy)
-                            </p>
-                          )}
-                          {attendee.guest_count && attendee.guest_count > 0 && (
-                            <p className="text-sm text-gray-400">
-                              +{attendee.guest_count} guest{attendee.guest_count > 1 ? 's' : ''}
-                            </p>
-                          )}
+                          
                         </div>
                       </div>
                       {attendee.special_notes && (

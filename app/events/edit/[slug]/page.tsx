@@ -2,6 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { Navigation } from '@/components/navigation'
 import { EventForm } from '@/components/event-form'
 import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
+import { Users, ExternalLink } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { checkEventPermissions } from '@/lib/auth-helpers'
 
 export default async function EditEventPage({
   params,
@@ -27,8 +31,9 @@ export default async function EditEventPage({
     notFound()
   }
 
-  // Check ownership
-  if (event.owner_id !== user.id) {
+  // Check permissions (owner or admin)
+  const permissions = await checkEventPermissions(event.id)
+  if (!permissions.canManage) {
     redirect('/dashboard')
   }
 
@@ -43,8 +48,25 @@ export default async function EditEventPage({
       <Navigation />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-bold mb-8">Edit Event</h1>
-        <EventForm categories={categories || []} event={event} />
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-4xl font-bold">Edit Event</h1>
+
+          {/* Manage Administrators - Only visible to owner */}
+          {permissions.isOwner && (
+            <Link href={`/events/${event.slug}/administrators`}>
+              <Button variant="outline" size="sm">
+                <Users className="w-4 h-4 mr-2" />
+                Manage Administrators
+                <ExternalLink className="w-3 h-3 ml-2" />
+              </Button>
+            </Link>
+          )}
+        </div>
+
+        <EventForm
+          categories={categories || []}
+          event={event}
+        />
       </div>
     </div>
   )

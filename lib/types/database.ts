@@ -214,6 +214,32 @@ export interface Database {
           updated_at?: string
         }
       }
+      event_administrators: {
+        Row: {
+          id: string
+          event_id: string
+          user_id: string
+          added_by: string
+          role: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          user_id: string
+          added_by: string
+          role?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          user_id?: string
+          added_by?: string
+          role?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       events_with_stats: {
@@ -286,3 +312,20 @@ export type EventWithStats = Database['public']['Views']['events_with_stats']['R
 // Helper types for registrations
 export type EventRegistration = Database['public']['Tables']['event_registrations']['Row']
 export type EventRegistrationInsert = Database['public']['Tables']['event_registrations']['Insert']
+
+// Helper types for event administrators
+export type EventAdministrator = Database['public']['Tables']['event_administrators']['Row']
+export type EventAdministratorInsert = Database['public']['Tables']['event_administrators']['Insert']
+
+// Event administrator with profile data
+export interface EventAdministratorWithProfile extends EventAdministrator {
+  profiles: {
+    id: string
+    email: string
+    full_name: string | null
+    avatar_url: string | null
+  }
+}
+
+// Profile type
+export type Profile = Database['public']['Tables']['profiles']['Row']
