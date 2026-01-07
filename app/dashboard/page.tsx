@@ -3,7 +3,7 @@ import { Navigation } from '@/components/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Users, Edit } from 'lucide-react'
+import { Calendar, Users, Edit, Clock } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -25,13 +25,37 @@ export default async function DashboardPage() {
     .eq('owner_id', user.id)
     .order('start_datetime', { ascending: true })
 
-  // Get user's registrations
+  // Get user's registrations with time slot info
   const { data: myRegistrations } = await supabase
     .from('event_registrations')
-    .select('*, events(*, event_categories(name, slug))')
+    .select('*, events(*, event_categories(name, slug)), event_time_slots(title, start_datetime)')
     .eq('user_id', user.id)
     .eq('attendance_status', 'registered')
     .order('registration_date', { ascending: false })
+
+  // Define types for grouped registrations
+  type RegistrationType = NonNullable<typeof myRegistrations>[0]
+  type GroupedRegistration = {
+    event: RegistrationType['events']
+    registrations: RegistrationType[]
+  }
+
+  // Group registrations by event for display
+  const groupedRegistrations = myRegistrations?.reduce<Record<string, GroupedRegistration>>((acc, reg) => {
+    const eventId = reg.events?.id
+    if (!eventId) return acc
+
+    if (!acc[eventId]) {
+      acc[eventId] = {
+        event: reg.events,
+        registrations: []
+      }
+    }
+    acc[eventId].registrations.push(reg)
+    return acc
+  }, {})
+
+  const groupedArray: GroupedRegistration[] = groupedRegistrations ? Object.values(groupedRegistrations) : []
 
   // Get user profile
   const { data: profile } = await supabase
@@ -96,6 +120,11 @@ export default async function DashboardPage() {
                             } className="text-xs">
                               {event.status}
                             </Badge>
+                            {event.has_time_slots && (
+                              <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                                Sessions
+                              </Badge>
+                            )}
                           </div>
                           <CardTitle className="text-lg">
                             <Link href={`/events/${event.slug}`} className="hover:text-blue-400">
@@ -103,9 +132,14 @@ export default async function DashboardPage() {
                             </Link>
                           </CardTitle>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
+                          <Link href={`/events/${event.slug}/slots`}>
+                            <Button size="sm" variant="ghost" title="Manage Time Slots">
+                              <Clock className="w-4 h-4" />
+                            </Button>
+                          </Link>
                           <Link href={`/events/edit/${event.slug}`}>
-                            <Button size="sm" variant="ghost">
+                            <Button size="sm" variant="ghost" title="Edit Event">
                               <Edit className="w-4 h-4" />
                             </Button>
                           </Link>
@@ -148,39 +182,65 @@ export default async function DashboardPage() {
             <h2 className="text-2xl font-bold mb-4">My Registrations</h2>
 
             <div className="space-y-4">
-              {myRegistrations && myRegistrations.length > 0 ? (
-                myRegistrations.map((registration) => (
-                  <Card key={registration.id} className="bg-white/5 backdrop-blur-sm border-white/10">
+              {groupedArray && groupedArray.length > 0 ? (
+                groupedArray.map((group) => (
+                  <Card key={group.event?.id} className="bg-white/5 backdrop-blur-sm border-white/10">
                     <CardHeader>
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant="secondary" className="text-xs">
-                          {registration.events?.event_categories?.name}
+                          {group.event?.event_categories?.name}
                         </Badge>
+                        {group.registrations.length > 1 && (
+                          <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                            {group.registrations.length} sessions
+                          </Badge>
+                        )}
                       </div>
                       <CardTitle className="text-lg">
                         <Link
-                          href={`/events/${registration.events?.slug}`}
+                          href={`/events/${group.event?.slug}`}
                           className="hover:text-blue-400"
                         >
-                          {registration.events?.title}
+                          {group.event?.title}
                         </Link>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2 text-sm text-gray-400">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDateTime(registration.events?.start_datetime)}</span>
-                        </div>
-                        {registration.guest_count > 0 && (
-                          <div className="flex items-center gap-2">
+                      <div className="space-y-3">
+                        {group.registrations.map((registration) => (
+                          <div key={registration.id} className="text-sm text-gray-400">
+                            {registration.time_slot_id && registration.event_time_slots ? (
+                              <div className="flex items-start gap-2 p-2 bg-white/5 rounded-lg">
+                                <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="font-medium text-white">
+                                    {registration.event_time_slots.title}
+                                  </p>
+                                  <p>
+                                    {formatDateTime(registration.event_time_slots.start_datetime)}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
+                                <span>{formatDateTime(group.event?.start_datetime)}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Show first registration's guest count and notes */}
+                        {group.registrations[0].guest_count > 0 && (
+                          <div className="flex items-center gap-2 text-sm text-gray-400">
                             <Users className="w-4 h-4" />
-                            <span>{registration.guest_count} guest(s)</span>
+                            <span>{group.registrations[0].guest_count} guest(s)</span>
                           </div>
                         )}
-                        {registration.special_notes && (
-                          <div className="mt-2 p-2 bg-white/5 rounded">
-                            <p className="text-xs">Note: {registration.special_notes}</p>
+                        {group.registrations[0].special_notes && (
+                          <div className="mt-2 p-2 bg-white/5 rounded text-sm">
+                            <p className="text-xs text-gray-500">Note:</p>
+                            <p className="text-gray-400">{group.registrations[0].special_notes}</p>
                           </div>
                         )}
                       </div>

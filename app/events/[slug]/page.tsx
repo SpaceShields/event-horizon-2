@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { Navigation } from '@/components/navigation'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, MapPin, Users, DollarSign, Video, Building, Clock, Globe, User } from 'lucide-react'
+import { Clock, Users, DollarSign, User } from 'lucide-react'
 import { formatDateTime, formatPrice } from '@/lib/utils'
-import { RegistrationButton } from '@/components/registration-button'
+import { EventRegistrationSection } from '@/components/event-registration-section'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+
+import type { TimeSlotWithStats } from '@/lib/types/database'
 
 export default async function EventDetailPage({
   params,
@@ -29,46 +31,65 @@ export default async function EventDetailPage({
   // Check if user is registered
   const { data: { user } } = await supabase.auth.getUser()
   let userRegistration = null
+  let existingSlotRegistrations: string[] = []
 
   const { data: registeredAttendees } = await supabase
     .from('event_registrations')
-    .select('*, profiles(full_name, avatar_url)')
-    .eq('event_id', event.id).limit(10)
-    // .eq('user_id', user.id)
-    // .single()
+    .select('*, profiles(full_name, avatar_url), event_time_slots(title)')
+    .eq('event_id', event.id).limit(50)
 
   registeredAttendees?.forEach((registeredProfile) => {
     if(registeredProfile.user_id == user?.id) {
       userRegistration = registeredProfile
+      if (registeredProfile.time_slot_id) {
+        existingSlotRegistrations.push(registeredProfile.time_slot_id)
+      }
     }
   })
 
-  const LocationIcon = event.location_type === 'virtual' ? Video : event.location_type === 'physical' ? Building : MapPin
+  // Fetch time slots if event has them
+  let timeSlots: TimeSlotWithStats[] = []
+  if (event.has_time_slots) {
+    const { data: slotsData } = await supabase
+      .from('time_slots_with_stats')
+      .select('*')
+      .eq('event_id', event.id)
+      .order('sort_order', { ascending: true })
+      .order('start_datetime', { ascending: true })
+
+    timeSlots = slotsData || []
+  }
+
   const isOwner = user?.id === event.owner_id
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Navigation />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
             <Badge variant="secondary">{event.event_categories?.name}</Badge>
+            {event.has_time_slots && (
+              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                Multiple Sessions
+              </Badge>
+            )}
             {event.is_full && <Badge variant="destructive">Full</Badge>}
             {event.status === 'ongoing' && <Badge className="bg-green-500">Ongoing</Badge>}
             {event.status === 'completed' && <Badge className="bg-gray-500">Completed</Badge>}
             {event.status === 'cancelled' && <Badge variant="destructive">Cancelled</Badge>}
           </div>
-          <h1 className="text-2xl md:text-5xl font-bold mb-4">{event.title}</h1>
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4">{event.title}</h1>
           {event.organization_name && (
-            <p className="text-xl text-gray-400">Organized by {event.organization_name}</p>
+            <p className="text-lg sm:text-xl text-gray-400">Organized by {event.organization_name}</p>
           )}
         </div>
 
         {/* Event Image */}
         {event.image_url && (
-          <div className="relative aspect-video w-full overflow-hidden rounded-xl mb-8">
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl mb-8">
             <Image
               src={event.image_url}
               alt={event.title}
@@ -80,193 +101,188 @@ export default async function EventDetailPage({
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="md:col-span-2 space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold mb-4">About This Event</h2>
-              <p className="text-gray-300 whitespace-pre-wrap">{event.description}</p>
-            </div>
+        {/* Single Column Layout */}
+        <div className="space-y-8">
+          {/* Registration Section - Prominent at top */}
+          <EventRegistrationSection
+            event={{
+              id: event.id,
+              slug: event.slug,
+              title: event.title,
+              start_datetime: event.start_datetime,
+              end_datetime: event.end_datetime,
+              location_type: event.location_type,
+              address: event.address,
+              meeting_url: event.meeting_url,
+              timezone: event.timezone,
+              capacity: event.capacity,
+              total_attendees: event.total_attendees,
+              registration_count: event.registration_count,
+              has_time_slots: event.has_time_slots,
+              ticket_price: event.ticket_price,
+              status: event.status,
+              is_full: event.is_full,
+            }}
+            timeSlots={timeSlots}
+            user={user}
+            isOwner={isOwner}
+            isRegistered={!!userRegistration}
+            existingSlotRegistrations={existingSlotRegistrations}
+          />
 
-            {event.registration_instructions && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Registration Instructions</h2>
-                <p className="text-gray-300 whitespace-pre-wrap">{event.registration_instructions}</p>
-              </div>
-            )}
+          {/* About Section */}
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4">About This Event</h2>
+            <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{event.description}</p>
+          </div>
 
-            {/* Registered Attendees - Only visible to event owner */}
-            {isOwner && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Registered Attendees</h2>
-                {registeredAttendees && registeredAttendees.length > 0 ? (
-                  <div className="space-y-3">
-                    {registeredAttendees.map((attendee) => (
-                      <div key={attendee.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                            <User className="w-6 h-6 text-blue-400" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{attendee.profiles?.full_name || 'Anonymous'}</p>
-                            <p className="text-sm text-gray-400">
-                              Registered {formatDateTime(attendee.created_at)}
-                            </p>
-                            {attendee.guest_count && attendee.guest_count > 1 && (
-                              <p className="text-sm text-gray-400">
-                                +{attendee.guest_count - 1} guest{attendee.guest_count > 2 ? 's' : ''}
-                              </p>
-                            )}
-                          </div>
+          {/* Time Slots Section */}
+          {event.has_time_slots && timeSlots.length > 0 && (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold mb-6">Sessions</h2>
+              <div className="space-y-4">
+                {timeSlots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-lg">{slot.title}</h3>
+                          {slot.is_full && (
+                            <Badge variant="destructive" className="text-xs">
+                              Full
+                            </Badge>
+                          )}
+                          {existingSlotRegistrations.includes(slot.id) && (
+                            <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-400">
+                              Registered
+                            </Badge>
+                          )}
                         </div>
-                        {attendee.special_notes && (
-                          <div className="mt-3 pt-3 border-t border-white/10">
-                            <p className="text-sm text-gray-400">
-                              <span className="font-medium">Note:</span> {attendee.special_notes}
-                            </p>
-                          </div>
+
+                        {slot.description && (
+                          <p className="text-sm text-gray-400 mb-3">{slot.description}</p>
                         )}
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-400">
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4" />
+                            {formatDateTime(slot.start_datetime)}
+                          </span>
+
+                          {slot.capacity ? (
+                            <span className="flex items-center gap-1.5">
+                              <Users className="w-4 h-4" />
+                              {slot.remaining_capacity !== null && slot.remaining_capacity > 0
+                                ? `${slot.remaining_capacity} spots left`
+                                : `${slot.total_attendees} / ${slot.capacity}`}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <Users className="w-4 h-4" />
+                              {slot.total_attendees} registered
+                            </span>
+                          )}
+
+                          {slot.price !== null && slot.price > 0 && (
+                            <span className="flex items-center gap-1.5 text-green-400 font-medium">
+                              <DollarSign className="w-4 h-4" />
+                              {formatPrice(slot.price)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-gray-400">No registered attendees yet</p>
-                )}
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Registration Card */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">{formatPrice(event.ticket_price)}</span>
-              </div>
+          {event.registration_instructions && (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold mb-4">Registration Instructions</h2>
+              <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{event.registration_instructions}</p>
+            </div>
+          )}
 
-              {user && (
-                <RegistrationButton
-                  eventId={event.id}
-                  eventSlug={event.slug}
-                  isRegistered={!!userRegistration}
-                  isFull={event.is_full}
-                  isOwner={isOwner}
-                  eventStatus={event.status}
+          {/* Organizer Card */}
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
+            <h3 className="font-semibold text-xl mb-4">Organized By</h3>
+            <div className="flex items-center gap-4">
+              {event.profiles?.avatar_url ? (
+                <Image
+                  src={event.profiles.avatar_url}
+                  alt={event.profiles.full_name || 'Organizer avatar'}
+                  width={56}
+                  height={56}
+                  className="rounded-full object-cover"
                 />
-              )}
-
-              {!user && (
-                <a href="/auth/login?redirectTo=/events/${event.slug}">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
-                    Sign in to Register
-                  </button>
-                </a>
-              )}
-
-              {event.capacity && (
-                <div className="pt-4 border-t border-white/10">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Capacity</span>
-                    <span className="font-medium">
-                      {event.total_attendees} / {event.capacity}
-                    </span>
-                  </div>
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-2xl">{event.profiles?.full_name?.[0] || 'U'}</span>
                 </div>
               )}
-            </div>
-
-            {/* Event Details Card */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 space-y-4">
-              <h3 className="font-semibold text-lg">Event Details</h3>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Date & Time</p>
-                    <p className="text-sm text-gray-400">{formatDateTime(event.start_datetime)}</p>
-                    <p className="text-sm text-gray-400">to {formatDateTime(event.end_datetime)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <LocationIcon className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="font-medium capitalize">{event.location_type} Event</p>
-                    {event.address && (
-                      <p className="text-sm text-gray-400">{event.address}</p>
-                    )}
-                    {event.meeting_url && (
-                      <a
-                        href={event.meeting_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-400 hover:underline"
-                      >
-                        Join Meeting
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Globe className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Timezone</p>
-                    <p className="text-sm text-gray-400">{event.timezone}</p>
-                  </div>
-                </div>
-
-                {event.capacity ? (
-                  <div className="flex items-start gap-3">
-                    <Users className="w-5 h-5 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Attendees</p>
-                      <p className="text-sm text-gray-400">
-                        {event.total_attendees} registered
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3">
-                    <Users className="w-5 h-5 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Unlimited Capacity</p>
-                      <p className="text-sm text-gray-400">
-                        {event.registration_count} registered
-                      </p>
-                    </div>
-                  </div>
+              <div>
+                <p className="font-medium text-lg">{event.profiles?.full_name || 'Anonymous'}</p>
+                {event.organization_name && (
+                  <p className="text-gray-400">{event.organization_name}</p>
                 )}
-              </div>
-            </div>
-
-            {/* Organizer Card */}
-            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-              <h3 className="font-semibold text-lg mb-4">Organized By</h3>
-              <div className="flex items-center gap-3">
-                {event.profiles?.avatar_url ? (
-                  <Image
-                    src={event.profiles.avatar_url}
-                    alt={event.profiles.full_name || 'Organizer avatar'}
-                    width={48}
-                    height={48}
-                    className="rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <span className="text-xl">{event.profiles?.full_name?.[0] || 'U'}</span>
-                  </div>
-                )}
-                <div>
-                  <p className="font-medium">{event.profiles?.full_name || 'Anonymous'}</p>
-                  {event.organization_name && (
-                    <p className="text-sm text-gray-400">{event.organization_name}</p>
-                  )}
-                </div>
               </div>
             </div>
           </div>
+
+          {/* Registered Attendees - Only visible to event owner */}
+          {isOwner && (
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8">
+              <h2 className="text-xl sm:text-2xl font-bold mb-6">Registered Attendees</h2>
+              {registeredAttendees && registeredAttendees.length > 0 ? (
+                <div className="space-y-4">
+                  {registeredAttendees.map((attendee) => (
+                    <div key={attendee.id} className="bg-white/5 border border-white/10 rounded-xl p-4 sm:p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                          <User className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-lg truncate">{attendee.profiles?.full_name || 'Anonymous'}</p>
+                          <p className="text-sm text-gray-400">
+                            Registered {formatDateTime(attendee.created_at)}
+                          </p>
+                          {attendee.time_slot_id && attendee.event_time_slots && (
+                            <p className="text-sm text-blue-400">
+                              Session: {attendee.event_time_slots.title}
+                            </p>
+                          )}
+                          {!attendee.time_slot_id && event.has_time_slots && (
+                            <p className="text-sm text-gray-500">
+                              Whole Event (Legacy)
+                            </p>
+                          )}
+                          {attendee.guest_count && attendee.guest_count > 0 && (
+                            <p className="text-sm text-gray-400">
+                              +{attendee.guest_count} guest{attendee.guest_count > 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {attendee.special_notes && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <p className="text-sm text-gray-400">
+                            <span className="font-medium text-gray-300">Note:</span> {attendee.special_notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400">No registered attendees yet</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

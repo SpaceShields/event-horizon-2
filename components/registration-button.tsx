@@ -1,67 +1,60 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { RegistrationModal } from '@/components/registration-modal'
 import { createClient } from '@/lib/supabase/client'
+import { Sparkles } from 'lucide-react'
+
+import type { TimeSlotWithStats } from '@/lib/types/database'
 
 interface RegistrationButtonProps {
   eventId: string
   eventSlug: string
+  eventTitle?: string
+  eventStartDatetime: string
+  eventEndDatetime: string
   isRegistered: boolean
   isFull: boolean
   isOwner: boolean
   eventStatus: string
+  hasTimeSlots?: boolean
+  timeSlots?: TimeSlotWithStats[]
+  existingSlotRegistrations?: string[] // slot IDs user is already registered for
+  variant?: 'default' | 'prominent'
+  onOpenModal?: () => void // Callback to open modal from parent
 }
 
 export function RegistrationButton({
   eventId,
   eventSlug,
+  eventTitle,
+  eventStartDatetime,
+  eventEndDatetime,
   isRegistered,
   isFull,
   isOwner,
   eventStatus,
+  hasTimeSlots = false,
+  timeSlots = [],
+  existingSlotRegistrations = [],
+  variant = 'default',
+  onOpenModal,
 }: RegistrationButtonProps) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [guestCount, setGuestCount] = useState(0)
-  const [specialNotes, setSpecialNotes] = useState('')
+  const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      router.push(`/auth/login?redirectTo=/events/${eventSlug}`)
-      return
-    }
-
-    const { error: regError } = await supabase
-      .from('event_registrations')
-      .insert({
-        event_id: eventId,
-        user_id: user.id,
-        guest_count: guestCount,
-        special_notes: specialNotes || null,
-      })
-
-    if (regError) {
-      setError(regError.message)
-      setLoading(false)
-    } else {
-      router.refresh()
-      setShowForm(false)
-    }
-  }
+  // Calculate if all available slots are registered
+  const allSlotsRegistered = useMemo(() => {
+    if (!hasTimeSlots || timeSlots.length === 0) return false
+    return timeSlots.every(
+      (slot) => slot.is_full || existingSlotRegistrations.includes(slot.id)
+    )
+  }, [hasTimeSlots, timeSlots, existingSlotRegistrations])
 
   const handleCancelRegistration = async () => {
     setLoading(true)
@@ -71,6 +64,7 @@ export function RegistrationButton({
 
     if (!user) return
 
+    // Delete all registrations for this event (including all slots)
     const { error: cancelError } = await supabase
       .from('event_registrations')
       .delete()
@@ -85,110 +79,212 @@ export function RegistrationButton({
     }
   }
 
+  const handleModalSuccess = () => {
+    setShowModal(false)
+  }
+
+  const handleOpenModal = () => {
+    setShowModal(true)
+    onOpenModal?.()
+  }
+
+  // Helper function to get button styles based on variant
+  const getButtonClasses = (baseClasses: string = '') => {
+    if (variant === 'prominent') {
+      return `w-full max-w-2xl mx-auto py-4 px-8 text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] ${baseClasses}`
+    }
+    return `w-full ${baseClasses}`
+  }
+
+  const getProminentGradient = () => {
+    return 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg hover:shadow-xl'
+  }
+
   if (isOwner) {
     return (
-      <Button className="w-full" variant="outline" disabled>
-        You are the organizer
-      </Button>
+      <div className={variant === 'prominent' ? 'flex justify-center' : ''}>
+        <Button className={getButtonClasses()} variant="outline" disabled>
+          You are the organizer
+        </Button>
+      </div>
     )
   }
 
   if (eventStatus === 'cancelled') {
     return (
-      <Button className="w-full" variant="destructive" disabled>
-        Event Cancelled
-      </Button>
+      <div className={variant === 'prominent' ? 'flex justify-center' : ''}>
+        <Button className={getButtonClasses()} variant="destructive" disabled>
+          Event Cancelled
+        </Button>
+      </div>
     )
   }
 
   if (eventStatus === 'completed') {
     return (
-      <Button className="w-full" variant="outline" disabled>
-        Event Completed
-      </Button>
+      <div className={variant === 'prominent' ? 'flex justify-center' : ''}>
+        <Button className={getButtonClasses()} variant="outline" disabled>
+          Event Completed
+        </Button>
+      </div>
     )
   }
 
-  if (isRegistered) {
+  // For events with time slots, show registered state differently
+  if (hasTimeSlots && existingSlotRegistrations.length > 0) {
     return (
-      <div className="space-y-2">
-        <Button className="w-full" variant="outline" disabled>
-          Registered
-        </Button>
+      <>
+        <div className={`space-y-3 ${variant === 'prominent' ? 'max-w-2xl mx-auto' : ''}`}>
+          <div className={`bg-green-500/10 border border-green-500/30 rounded-xl p-4 ${variant === 'prominent' ? 'text-center' : ''}`}>
+            <p className={`text-green-400 font-medium ${variant === 'prominent' ? 'text-lg' : 'text-sm'}`}>
+              Registered for {existingSlotRegistrations.length} session{existingSlotRegistrations.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+
+          {!allSlotsRegistered && (
+            <Button
+              className={getButtonClasses(variant === 'prominent' ? getProminentGradient() : '')}
+              variant={variant === 'prominent' ? 'default' : 'outline'}
+              onClick={handleOpenModal}
+            >
+              {variant === 'prominent' && <Sparkles className="w-5 h-5 mr-2" />}
+              Register for More Sessions
+            </Button>
+          )}
+
+          <Button
+            className={getButtonClasses()}
+            variant="destructive"
+            onClick={handleCancelRegistration}
+            disabled={loading}
+          >
+            {loading ? 'Cancelling...' : 'Cancel All Registrations'}
+          </Button>
+
+          {error && <p className={`text-red-400 ${variant === 'prominent' ? 'text-center' : 'text-sm'}`}>{error}</p>}
+        </div>
+
+        <RegistrationModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          eventId={eventId}
+          eventSlug={eventSlug}
+          eventTitle={eventTitle}
+          eventStartDatetime={eventStartDatetime}
+          eventEndDatetime={eventEndDatetime}
+          hasTimeSlots={hasTimeSlots}
+          timeSlots={timeSlots}
+          existingSlotRegistrations={existingSlotRegistrations}
+          onSuccess={handleModalSuccess}
+        />
+      </>
+    )
+  }
+
+  // Legacy whole-event registration
+  if (isRegistered && !hasTimeSlots) {
+    return (
+      <div className={`space-y-3 ${variant === 'prominent' ? 'max-w-2xl mx-auto' : ''}`}>
+        <div className={`bg-green-500/10 border border-green-500/30 rounded-xl p-4 ${variant === 'prominent' ? 'text-center' : ''}`}>
+          <p className={`text-green-400 font-medium ${variant === 'prominent' ? 'text-lg' : 'text-sm'}`}>
+            You are registered for this event
+          </p>
+        </div>
         <Button
-          className="w-full"
+          className={getButtonClasses()}
           variant="destructive"
           onClick={handleCancelRegistration}
           disabled={loading}
         >
           {loading ? 'Cancelling...' : 'Cancel Registration'}
         </Button>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className={`text-red-400 ${variant === 'prominent' ? 'text-center' : 'text-sm'}`}>{error}</p>}
       </div>
     )
   }
 
-  if (isFull) {
+  // Check if event (without slots) is full
+  if (isFull && !hasTimeSlots) {
     return (
-      <Button className="w-full" variant="destructive" disabled>
-        Event Full
-      </Button>
+      <div className={variant === 'prominent' ? 'flex justify-center' : ''}>
+        <Button className={getButtonClasses()} variant="destructive" disabled>
+          Event Full
+        </Button>
+      </div>
     )
   }
 
-  if (!showForm) {
+  // Check if all slots are full or registered
+  if (hasTimeSlots && allSlotsRegistered) {
     return (
-      <Button className="w-full" onClick={() => setShowForm(true)}>
-        Register for Event
-      </Button>
+      <div className={variant === 'prominent' ? 'flex justify-center' : ''}>
+        <Button className={getButtonClasses()} variant="destructive" disabled>
+          All Sessions Full or Registered
+        </Button>
+      </div>
+    )
+  }
+
+  // Default: Show register button
+  if (variant === 'prominent') {
+    return (
+      <>
+        <div className="flex justify-center">
+          <button
+            onClick={handleOpenModal}
+            className={`${getButtonClasses(getProminentGradient())} flex items-center justify-center gap-2`}
+          >
+            <Sparkles className="w-5 h-5" />
+            {hasTimeSlots ? 'Select Sessions to Register' : 'Register for Event'}
+          </button>
+        </div>
+
+        <RegistrationModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          eventId={eventId}
+          eventSlug={eventSlug}
+          eventTitle={eventTitle}
+          eventStartDatetime={eventStartDatetime}
+          eventEndDatetime={eventEndDatetime}
+          hasTimeSlots={hasTimeSlots}
+          timeSlots={timeSlots}
+          existingSlotRegistrations={existingSlotRegistrations}
+          onSuccess={handleModalSuccess}
+        />
+      </>
     )
   }
 
   return (
-    <form onSubmit={handleRegister} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="guestCount">Number of Guests (Optional)</Label>
-        <Input
-          id="guestCount"
-          type="number"
-          min="0"
-          value={guestCount}
-          onChange={(e) => setGuestCount(parseInt(e.target.value) || 0)}
-          className="bg-white/5 border-white/10"
-        />
-      </div>
+    <>
+      <Button className="w-full" onClick={handleOpenModal}>
+        {hasTimeSlots ? 'Select Sessions' : 'Register for Event'}
+      </Button>
 
-      <div className="space-y-2">
-        <Label htmlFor="specialNotes">Special Notes (Optional)</Label>
-        <Textarea
-          id="specialNotes"
-          value={specialNotes}
-          onChange={(e) => setSpecialNotes(e.target.value)}
-          placeholder="Any dietary restrictions, accessibility needs, etc."
-          rows={3}
-          className="bg-white/5 border-white/10"
-        />
-      </div>
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <Button type="submit" className="flex-1" disabled={loading}>
-          {loading ? 'Registering...' : 'Confirm Registration'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setShowForm(false)}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
+      <RegistrationModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        eventId={eventId}
+        eventSlug={eventSlug}
+        eventTitle={eventTitle}
+        eventStartDatetime={eventStartDatetime}
+        eventEndDatetime={eventEndDatetime}
+        hasTimeSlots={hasTimeSlots}
+        timeSlots={timeSlots}
+        existingSlotRegistrations={existingSlotRegistrations}
+        onSuccess={handleModalSuccess}
+      />
+    </>
   )
+}
+
+// Export a function to allow external components to trigger the modal
+export function useRegistrationModal() {
+  const [showModal, setShowModal] = useState(false)
+  return {
+    isOpen: showModal,
+    open: () => setShowModal(true),
+    close: () => setShowModal(false),
+  }
 }
