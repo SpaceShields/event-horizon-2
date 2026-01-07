@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Image from 'next/image'
 import { ImageIcon, Upload, AlertTriangle, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
@@ -177,19 +176,6 @@ export function ImageSelector({
             </div>
           </div>
 
-          {/* Current external image preview */}
-          {initialImageUrl && (
-            <div className="relative aspect-video w-48 rounded-lg overflow-hidden border border-white/10">
-              <Image
-                src={initialImageUrl}
-                alt="Current event image"
-                fill
-                sizes="192px"
-                className="object-cover"
-              />
-            </div>
-          )}
-
           <div className="flex gap-3">
             <Button
               type="button"
@@ -263,49 +249,7 @@ export function ImageSelector({
             )}
           </div>
 
-          {/* Selected image preview */}
-          {getCurrentImageUrl() && (
-            <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-              <p className="text-sm text-gray-400 mb-3">Selected Image Preview:</p>
-              <div className="relative aspect-video max-w-md rounded-lg overflow-hidden border border-white/10">
-                <Image
-                  src={getCurrentImageUrl()!}
-                  alt="Selected event image"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover"
-                />
-              </div>
-            </div>
-          )}
         </>
-      )}
-
-      {/* Show kept external image */}
-      {migrationChoice === 'keep' && initialImageUrl && (
-        <div className="bg-white/5 rounded-lg border border-white/10 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-gray-400">Keeping existing image:</p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setMigrationChoice(null)}
-              className="text-gray-400 hover:text-white text-xs"
-            >
-              Change
-            </Button>
-          </div>
-          <div className="relative aspect-video max-w-md rounded-lg overflow-hidden border border-white/10">
-            <Image
-              src={initialImageUrl}
-              alt="Current event image"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-            />
-          </div>
-        </div>
       )}
     </div>
   )

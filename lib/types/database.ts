@@ -135,11 +135,53 @@ export interface Database {
           updated_at?: string
         }
       }
+      event_time_slots: {
+        Row: {
+          id: string
+          event_id: string
+          title: string
+          description: string | null
+          start_datetime: string
+          end_datetime: string
+          capacity: number | null
+          price: number | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          title: string
+          description?: string | null
+          start_datetime: string
+          end_datetime: string
+          capacity?: number | null
+          price?: number | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          title?: string
+          description?: string | null
+          start_datetime?: string
+          end_datetime?: string
+          capacity?: number | null
+          price?: number | null
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       event_registrations: {
         Row: {
           id: string
           event_id: string
           user_id: string
+          time_slot_id: string | null
           guest_count: number
           special_notes: string | null
           registration_date: string
@@ -151,6 +193,7 @@ export interface Database {
           id?: string
           event_id: string
           user_id: string
+          time_slot_id?: string | null
           guest_count?: number
           special_notes?: string | null
           registration_date?: string
@@ -162,6 +205,7 @@ export interface Database {
           id?: string
           event_id?: string
           user_id?: string
+          time_slot_id?: string | null
           guest_count?: number
           special_notes?: string | null
           registration_date?: string
@@ -197,6 +241,26 @@ export interface Database {
           registration_count: number
           total_attendees: number
           is_full: boolean
+          has_time_slots: boolean
+        }
+      }
+      time_slots_with_stats: {
+        Row: {
+          id: string
+          event_id: string
+          title: string
+          description: string | null
+          start_datetime: string
+          end_datetime: string
+          capacity: number | null
+          price: number | null
+          sort_order: number
+          created_at: string
+          updated_at: string
+          registration_count: number
+          total_attendees: number
+          remaining_capacity: number | null
+          is_full: boolean
         }
       }
     }
@@ -208,3 +272,17 @@ export interface Database {
     }
   }
 }
+
+// Helper types for time slots
+export type TimeSlot = Database['public']['Tables']['event_time_slots']['Row']
+export type TimeSlotInsert = Database['public']['Tables']['event_time_slots']['Insert']
+export type TimeSlotUpdate = Database['public']['Tables']['event_time_slots']['Update']
+export type TimeSlotWithStats = Database['public']['Views']['time_slots_with_stats']['Row']
+
+// Helper types for events
+export type Event = Database['public']['Tables']['events']['Row']
+export type EventWithStats = Database['public']['Views']['events_with_stats']['Row']
+
+// Helper types for registrations
+export type EventRegistration = Database['public']['Tables']['event_registrations']['Row']
+export type EventRegistrationInsert = Database['public']['Tables']['event_registrations']['Insert']
