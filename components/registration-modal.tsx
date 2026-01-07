@@ -485,17 +485,17 @@ export function RegistrationModal({
 
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="guestCount" className="text-base">Number of Guests</Label>
+                    <Label htmlFor="guestCount" className="text-base">Number of Additional Guests</Label>
                     <Input
                       id="guestCount"
                       type="number"
-                      min="1"
+                      min="0"
                       value={guestCount}
-                      onChange={(e) => setGuestCount(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) => setGuestCount(Math.max(0, parseInt(e.target.value) || 0))}
                       className="bg-white/5 border-white/10 h-12 text-lg"
                       disabled={loading}
                     />
-                    <p className="text-sm text-gray-500">Including yourself</p>
+                    <p className="text-sm text-gray-500">Not including yourself</p>
                   </div>
 
                   <div className="space-y-2">
