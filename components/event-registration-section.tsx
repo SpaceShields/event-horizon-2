@@ -1,8 +1,4 @@
-'use client'
-
-import { useState } from 'react'
 import { RegistrationButton } from '@/components/registration-button'
-import { RegistrationModal } from '@/components/registration-modal'
 import { EventDetailsCard } from '@/components/event-details-card'
 import { Sparkles } from 'lucide-react'
 
@@ -42,21 +38,6 @@ export function EventRegistrationSection({
   isRegistered,
   existingSlotRegistrations,
 }: EventRegistrationSectionProps) {
-  const [showModal, setShowModal] = useState(false)
-
-  const handleCardClick = () => {
-    if (user && !isOwner && event.status !== 'cancelled' && event.status !== 'completed') {
-      setShowModal(true)
-    }
-  }
-
-  const handleModalSuccess = () => {
-    setShowModal(false)
-  }
-
-  // Determine if card should be clickable
-  const isCardClickable = !!user && !isOwner && event.status !== 'cancelled' && event.status !== 'completed'
-
   // Show sign in prompt for unauthenticated users
   if (!user) {
     return (
@@ -72,12 +53,10 @@ export function EventRegistrationSection({
           </a>
         </div>
 
-        {/* Event Details Card - Not clickable for unauthenticated */}
+        {/* Event Details Card */}
         <EventDetailsCard
           event={event}
           timeSlots={timeSlots}
-          onClick={() => {}}
-          disabled={true}
         />
       </div>
     )
@@ -102,30 +81,11 @@ export function EventRegistrationSection({
         variant="prominent"
       />
 
-      {/* Clickable Event Details Card */}
+      {/* Event Details Card - Non-interactive, purely informational */}
       <EventDetailsCard
         event={event}
         timeSlots={timeSlots}
-        onClick={handleCardClick}
-        disabled={!isCardClickable}
       />
-
-      {/* Standalone Modal for card clicks */}
-      {isCardClickable && (
-        <RegistrationModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          eventId={event.id}
-          eventSlug={event.slug}
-          eventTitle={event.title}
-          eventStartDatetime={event.start_datetime}
-          eventEndDatetime={event.end_datetime}
-          hasTimeSlots={event.has_time_slots}
-          timeSlots={timeSlots}
-          existingSlotRegistrations={existingSlotRegistrations}
-          onSuccess={handleModalSuccess}
-        />
-      )}
     </div>
   )
 }

@@ -1,17 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { Navigation } from '@/components/navigation'
-import { TimelineManager } from '@/components/timeline-manager'
+import { AdministratorsManager } from '@/components/administrators-manager'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { checkEventPermissions } from '@/lib/auth-helpers'
 
-interface EventSlotsPageProps {
+interface EventAdministratorsPageProps {
   params: Promise<{ slug: string }>
 }
 
-export default async function EventSlotsPage({ params }: EventSlotsPageProps) {
+export default async function EventAdministratorsPage({ params }: EventAdministratorsPageProps) {
   const { slug } = await params
   const supabase = await createClient()
 
@@ -19,7 +19,7 @@ export default async function EventSlotsPage({ params }: EventSlotsPageProps) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect(`/auth/login?redirectTo=/events/${slug}/slots`)
+    redirect(`/auth/login?redirectTo=/events/${slug}/administrators`)
   }
 
   // Fetch event
@@ -33,19 +33,11 @@ export default async function EventSlotsPage({ params }: EventSlotsPageProps) {
     notFound()
   }
 
-  // Check permissions (owner or admin)
+  // Check permissions - ONLY owners can manage administrators (not admins)
   const permissions = await checkEventPermissions(event.id)
-  if (!permissions.canManage) {
+  if (!permissions.isOwner) {
     redirect(`/events/${slug}`)
   }
-
-  // Fetch time slots with stats
-  const { data: slots } = await supabase
-    .from('time_slots_with_stats')
-    .select('*')
-    .eq('event_id', event.id)
-    .order('sort_order', { ascending: true })
-    .order('start_datetime', { ascending: true })
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -64,17 +56,14 @@ export default async function EventSlotsPage({ params }: EventSlotsPageProps) {
 
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Manage Time Slots</h1>
+          <h1 className="text-3xl font-bold mb-2">Manage Administrators</h1>
           <p className="text-gray-400">
-            Add and manage time slots for <span className="text-white font-medium">{event.title}</span>
+            Add and manage administrators for <span className="text-white font-medium">{event.title}</span>
           </p>
         </div>
 
-        {/* Timeline Manager */}
-        <TimelineManager
-          event={event}
-          initialSlots={slots || []}
-        />
+        {/* Administrators Manager */}
+        <AdministratorsManager eventId={event.id} />
       </div>
     </div>
   )

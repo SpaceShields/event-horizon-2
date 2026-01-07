@@ -1,6 +1,4 @@
-'use client'
-
-import { Calendar, MapPin, Users, Clock, Globe, Video, Building, ArrowRight, DollarSign } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Globe, Video, Building } from 'lucide-react'
 import { formatDateTime, formatPrice } from '@/lib/utils'
 
 import type { TimeSlotWithStats } from '@/lib/types/database'
@@ -20,11 +18,9 @@ interface EventDetailsCardProps {
     ticket_price?: number | null
   }
   timeSlots: TimeSlotWithStats[]
-  onClick: () => void
-  disabled?: boolean
 }
 
-export function EventDetailsCard({ event, timeSlots, onClick, disabled = false }: EventDetailsCardProps) {
+export function EventDetailsCard({ event, timeSlots }: EventDetailsCardProps) {
   const LocationIcon = event.location_type === 'virtual' ? Video : event.location_type === 'physical' ? Building : MapPin
 
   // Calculate price display
@@ -45,30 +41,12 @@ export function EventDetailsCard({ event, timeSlots, onClick, disabled = false }
   }
 
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`
-        w-full text-left bg-white/5 backdrop-blur-sm border-2 border-white/10 rounded-2xl p-6
-        transition-all duration-300 group
-        ${disabled
-          ? 'opacity-60 cursor-not-allowed'
-          : 'hover:border-blue-500/50 hover:bg-white/[0.08] hover:shadow-lg hover:shadow-blue-500/5 cursor-pointer'
-        }
-      `}
-    >
+    <div className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
       {/* Price Header */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
         <div>
           <p className="text-sm text-gray-400 mb-1">Price</p>
           <p className="text-2xl font-bold text-white">{getPriceDisplay()}</p>
-        </div>
-        <div className={`
-          p-3 rounded-full bg-blue-500/10 text-blue-400
-          transition-all duration-300
-          ${!disabled && 'group-hover:bg-blue-500/20 group-hover:scale-110'}
-        `}>
-          <ArrowRight className={`w-5 h-5 transition-transform duration-300 ${!disabled && 'group-hover:translate-x-1'}`} />
         </div>
       </div>
 
@@ -140,18 +118,6 @@ export function EventDetailsCard({ event, timeSlots, onClick, disabled = false }
           </div>
         )}
       </div>
-
-      {/* Click Hint */}
-      {!disabled && (
-        <div className={`
-          mt-6 pt-4 border-t border-white/10 flex items-center justify-between
-          text-sm text-gray-500 transition-colors duration-300
-          group-hover:text-blue-400
-        `}>
-          <span>Click to register</span>
-          <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-        </div>
-      )}
-    </button>
+    </div>
   )
 }

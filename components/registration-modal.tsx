@@ -55,7 +55,7 @@ export function RegistrationModal({
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   const [loading, setLoading] = useState(false)
-  const [guestCount, setGuestCount] = useState(1)
+  const [guestCount, setGuestCount] = useState(0)
   const [specialNotes, setSpecialNotes] = useState('')
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)

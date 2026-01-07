@@ -23,7 +23,6 @@ interface RegistrationButtonProps {
   timeSlots?: TimeSlotWithStats[]
   existingSlotRegistrations?: string[] // slot IDs user is already registered for
   variant?: 'default' | 'prominent'
-  onOpenModal?: () => void // Callback to open modal from parent
 }
 
 export function RegistrationButton({
@@ -40,7 +39,6 @@ export function RegistrationButton({
   timeSlots = [],
   existingSlotRegistrations = [],
   variant = 'default',
-  onOpenModal,
 }: RegistrationButtonProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -85,7 +83,6 @@ export function RegistrationButton({
 
   const handleOpenModal = () => {
     setShowModal(true)
-    onOpenModal?.()
   }
 
   // Helper function to get button styles based on variant
