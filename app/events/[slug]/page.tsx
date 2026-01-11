@@ -6,6 +6,7 @@ import { Clock, Users, DollarSign, User, Edit } from 'lucide-react'
 import { formatDateTime, formatPrice } from '@/lib/utils'
 import { EventRegistrationSection } from '@/components/event-registration-section'
 import { SlotRegistrations, WholeEventRegistrations } from '@/components/slot-registrations'
+import { SlotCalendarButtons } from '@/components/slot-calendar-buttons'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -138,6 +139,7 @@ export default async function EventDetailPage({
               id: event.id,
               slug: event.slug,
               title: event.title,
+              description: event.description,
               start_datetime: event.start_datetime,
               end_datetime: event.end_datetime,
               location_type: event.location_type,
@@ -151,6 +153,7 @@ export default async function EventDetailPage({
               ticket_price: event.ticket_price,
               status: event.status,
               is_full: event.is_full,
+              organization_name: event.organization_name,
             }}
             timeSlots={timeSlots}
             user={user}
@@ -223,6 +226,30 @@ export default async function EventDetailPage({
                           )}
                         </div>
                       </div>
+
+                      {/* Calendar buttons for registered slots */}
+                      {existingSlotRegistrations.includes(slot.id) && (
+                        <SlotCalendarButtons
+                          event={{
+                            title: event.title,
+                            description: event.description,
+                            start_datetime: event.start_datetime,
+                            end_datetime: event.end_datetime,
+                            timezone: event.timezone,
+                            location_type: event.location_type,
+                            address: event.address,
+                            meeting_url: event.meeting_url,
+                            organization_name: event.organization_name,
+                            slug: event.slug,
+                          }}
+                          slot={{
+                            id: slot.id,
+                            title: slot.title || '',
+                            start_datetime: slot.start_datetime,
+                            end_datetime: slot.end_datetime,
+                          }}
+                        />
+                      )}
                     </div>
 
                     {/* Slot Registrations - Visible to owners/admins */}

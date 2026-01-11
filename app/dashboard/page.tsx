@@ -9,6 +9,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { DeleteEventButton } from '@/components/delete-event-button'
+import { AddToCalendarButtons } from '@/components/add-to-calendar-buttons'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
   // Get user's registrations with time slot info
   const { data: myRegistrations } = await supabase
     .from('event_registrations')
-    .select('*, events(*, event_categories(name, slug)), event_time_slots(title, start_datetime)')
+    .select('*, events(*, event_categories(name, slug)), event_time_slots(id, title, start_datetime, end_datetime)')
     .eq('user_id', user.id)
     .eq('attendance_status', 'registered')
     .order('registration_date', { ascending: false })
@@ -229,6 +230,36 @@ export default async function DashboardPage() {
                             )}
                           </div>
                         ))}
+
+                        {/* Add to Calendar buttons */}
+                        {group.event && (
+                          <AddToCalendarButtons
+                            event={{
+                              title: group.event.title,
+                              description: group.event.description,
+                              start_datetime: group.event.start_datetime,
+                              end_datetime: group.event.end_datetime,
+                              timezone: group.event.timezone,
+                              location_type: group.event.location_type,
+                              address: group.event.address,
+                              meeting_url: group.event.meeting_url,
+                              organization_name: group.event.organization_name,
+                              slug: group.event.slug,
+                            }}
+                            registeredSlots={
+                              group.registrations
+                                .filter((r) => r.time_slot_id && r.event_time_slots)
+                                .map((r) => ({
+                                  id: r.event_time_slots!.id,
+                                  title: r.event_time_slots!.title,
+                                  start_time: r.event_time_slots!.start_datetime,
+                                  end_time: r.event_time_slots!.end_datetime,
+                                }))
+                            }
+                            variant="compact"
+                            className="mt-3 pt-3 border-t border-white/10"
+                          />
+                        )}
 
                         {/* Show first registration's guest count and notes */}
                         {group.registrations[0].guest_count > 0 && (

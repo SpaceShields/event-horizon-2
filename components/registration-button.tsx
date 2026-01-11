@@ -136,6 +136,9 @@ export function RegistrationButton({
             <p className={`text-green-400 font-medium ${variant === 'prominent' ? 'text-lg' : 'text-sm'}`}>
               Registered for {existingSlotRegistrations.length} session{existingSlotRegistrations.length !== 1 ? 's' : ''}
             </p>
+            <p className={`text-gray-400 ${variant === 'prominent' ? 'text-sm' : 'text-xs'} mt-1`}>
+              Add to calendar from the Sessions section below
+            </p>
           </div>
 
           {!allSlotsRegistered && (
