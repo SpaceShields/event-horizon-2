@@ -269,6 +269,11 @@ export function RegistrationModal({
                   ? `You have been registered for ${selectedSlotIds.length} session${selectedSlotIds.length !== 1 ? 's' : ''}.`
                   : 'You have been registered for this event.'}
               </p>
+              <p className="text-gray-500 text-sm mt-4">
+                {hasTimeSlots
+                  ? 'You can add sessions to your calendar from the Sessions section.'
+                  : 'You can add this event to your calendar from the event details.'}
+              </p>
             </div>
           </div>
         ) : (

@@ -9,6 +9,7 @@ interface EventRegistrationSectionProps {
     id: string
     slug: string
     title: string
+    description?: string | null
     start_datetime: string
     end_datetime: string
     location_type: 'physical' | 'virtual' | 'hybrid'
@@ -22,6 +23,7 @@ interface EventRegistrationSectionProps {
     ticket_price?: number | null
     status: string
     is_full: boolean
+    organization_name?: string | null
   }
   timeSlots: TimeSlotWithStats[]
   user: { id: string } | null
@@ -57,6 +59,7 @@ export function EventRegistrationSection({
         <EventDetailsCard
           event={event}
           timeSlots={timeSlots}
+          isRegistered={false}
         />
       </div>
     )
@@ -85,6 +88,7 @@ export function EventRegistrationSection({
       <EventDetailsCard
         event={event}
         timeSlots={timeSlots}
+        isRegistered={isRegistered}
       />
     </div>
   )
